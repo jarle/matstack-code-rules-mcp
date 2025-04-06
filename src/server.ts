@@ -40,7 +40,6 @@ export async function startServer() {
   const transport = new StdioServerTransport();
 
   await server.connect(transport);
-  console.error("Code Rules MCP Server running on stdio");
 
   return server;
 } 
