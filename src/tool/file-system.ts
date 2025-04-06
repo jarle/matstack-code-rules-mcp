@@ -17,7 +17,7 @@ export async function getMarkdownFiles(docsPath: string): Promise<string[]> {
 
       if (entry.isDirectory()) {
         await scanDirectory(entryPath);
-      } else if (entry.isFile() && entry.name.endsWith('.mdc')) {
+      } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdc'))) {
         allFiles.push(entryPath);
       }
     }
