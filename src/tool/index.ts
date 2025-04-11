@@ -1,4 +1,5 @@
 import type { CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import pLimit from 'p-limit';
 import { FileService } from './file-service';
 import { FilterService } from './filter-service';
 import { FormatterService } from './formatter';
@@ -40,20 +41,32 @@ export class CodeRulesHandler {
       );
 
       // Filter relevant files
-      const relevantFiles = this.filterService.filterRelevantFiles(filesWithMetadata, task);
-      console.error(`Selected ${relevantFiles.length} relevant files`);
+      const relevantFiles = await this.filterService.filterRelevantFiles(filesWithMetadata, task);
+      console.error(`Processing ${relevantFiles.length} relevant files`);
 
-      // Extract and filter content from relevant files
-      const relevantContents: RelevantContent[] = await Promise.all(
-        relevantFiles.map(async file => {
+      // Set up concurrency limit for parallel processing - max 4 at a time
+      const limit = pLimit(4);
+      const startTime = Date.now();
+
+      // Process files in parallel with concurrency control
+      const relevantContentPromises = relevantFiles.map(file =>
+        limit(async () => {
+          console.error(`Starting content processing for ${file.filename}`);
           const rawContent = await this.fileService.getFileContent(file.path);
-          const filteredContent = this.filterService.filterRelevantContent(rawContent, task);
+          const filteredContent = await this.filterService.filterRelevantContent(rawContent, task);
+          console.error(`Finished content processing for ${file.filename}`);
           return {
             file: file.filename,
             content: filteredContent
           };
         })
       );
+
+      // Wait for all content processing to complete
+      const relevantContents: RelevantContent[] = await Promise.all(relevantContentPromises);
+      const endTime = Date.now();
+
+      console.error(`All content processed in ${(endTime - startTime) / 1000} seconds`);
 
       // Format the output as a markdown document
       const formattedOutput = this.formatterService.formatOutput(relevantContents);

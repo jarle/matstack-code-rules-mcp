@@ -14,9 +14,11 @@ export class FormatterService {
       return "No relevant documentation found for this task.";
     }
 
-    return contents.map(item =>
+    const concatenatedContent = contents.map(item =>
       `## ${item.file}\n\n${item.content}\n\n`
     ).join('---\n\n');
+
+    return `<CODE_RULES>\n${concatenatedContent.trim()}\n</CODE_RULES>`;
   }
 
   /**
